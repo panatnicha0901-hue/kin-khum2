@@ -1,0 +1,13 @@
+{
+  "name": "Kin-khum",
+  "description": "Your personal culinary concierge for smart dining and budget-friendly flavor.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "Budget-friendly restaurant discovery",
+    "Real-time food savings tracker",
+    "Social dining buddy matching",
+    "Smart random meal generator"
+  ]
+}
