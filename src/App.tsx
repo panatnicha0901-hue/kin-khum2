@@ -3,13 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState, useEffect, useMemo, useRef, createContext, useContext } from 'react';
+import { motion, AnimatePresence, useAnimation } from 'motion/react';
 import { 
   Home, 
   Map as MapIcon, 
   UtensilsCrossed, 
+  Utensils,
   ChevronRight, 
+  ChevronLeft,
   Search, 
   SlidersHorizontal,
   CheckCircle,
@@ -22,35 +24,94 @@ import {
   Users,
   ArrowLeft,
   Megaphone,
-  ChefHat
+  ChefHat,
+  Send,
+  ClipboardCheck,
+  Flame,
+  Sparkles,
+  Timer,
+  Star,
+  User,
+  Settings,
+  ShieldCheck,
+  History,
+  LogOut,
+  Camera,
+  Pencil,
+  Wallet,
+  Ban,
 } from 'lucide-react';
 import { Screen, UserPreferences, Restaurant } from './types';
 
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import L from 'leaflet';
+
 // Mock Data
+const SAMYAN_CENTER = { lat: 13.7367, lng: 100.5331 };
+
 const RESTAURANTS: Restaurant[] = [
-  { id: '1', name: "Chester's Grill", promotion: 'Promotion 3 Free 2', location: { top: '500px', left: '600px' }, price: '120', type: 'Fast Food', spots: '1 slots left', joined: '4/5', buddies: ['f2.png', 'f3.png'] },
-  { id: '2', name: "Street Somtum", promotion: 'Special 10% Off', location: { top: '350px', left: '250px' }, price: '60', type: 'Street Food', spots: '3 spots left', joined: '1/4', buddies: ['f1.png'] },
-  { id: '3', name: "Noodle House", promotion: 'Buy 2 Get 1', location: { top: '250px', left: '800px' }, price: '45', type: 'Street Food', spots: '2 spots left', joined: '2/4', buddies: ['f2.png', 'f3.png'] },
-  { id: '4', name: "Khao Man Gai", promotion: 'Free Drink', location: { top: '750px', left: '400px' }, price: '50', type: 'Street Food', spots: '1 slots left', joined: '3/4', buddies: ['f1.png', 'f2.png', 'f3.png'] },
-  { id: '5', name: "Shabu On The Go", promotion: 'Promotion 4 Pay 3', location: { top: '650px', left: '950px' }, price: '299', type: 'Buffet', spots: '1 slots left', joined: '3/4', buddies: ['f2.png', 'f1.png'] },
-  { id: '6', name: "Sushi Express", promotion: 'Special 15% Off', location: { top: '150px', left: '450px' }, price: '450', type: 'Japanese', spots: '2 spots left', joined: '2/4', buddies: ['f1.png', 'f3.png'] },
-  { id: '7', name: "Moo Ping", promotion: 'Buy 10 Get 1', location: { top: '900px', left: '150px' }, price: '10', type: 'Street Food', spots: '5 spots left', joined: '0/5', buddies: [] },
-  { id: '8', name: "Ramen Boss", promotion: 'Free Gyoza', location: { top: '420px', left: '1100px' }, price: '180', type: 'Japanese', spots: '1 spots left', joined: '3/4', buddies: ['f2.png'] },
-  { id: '9', name: "Bubble Tea Bar", promotion: 'Buy 1 Get 1', location: { top: '100px', left: '900px' }, price: '55', type: 'Drinks', spots: '2 spots left', joined: '1/3', buddies: ['f3.png'] },
-  { id: '10', name: "Boat Noodle", promotion: 'Special ฿15 Only', location: { top: '850px', left: '750px' }, price: '15', type: 'Street Food', spots: '4 spots left', joined: '1/5', buddies: ['f1.png'] },
-  { id: '11', name: "Pad Thai J", promotion: 'Free Topping', location: { top: '550px', left: '150px' }, price: '65', type: 'Street Food', spots: '2 spots left', joined: '2/4', buddies: ['f2.png', 'f3.png'] },
-  { id: '12', name: "Pizza Hut", promotion: 'Buy 1 Get 1', location: { top: '1100px', left: '600px' }, price: '399', type: 'Fast Food', spots: '1 slots left', joined: '3/4', buddies: ['f1.png'] },
-  { id: '13', name: "Thai Curry", promotion: 'Free Rice', location: { top: '300px', left: '1300px' }, price: '80', type: 'Street Food', spots: '3 spots left', joined: '1/4', buddies: ['f2.png'] },
-  { id: '14', name: "Craft Burger", promotion: 'Special Burger Set', location: { top: '1300px', left: '300px' }, price: '250', type: 'Western', spots: '2 spots left', joined: '2/4', buddies: ['f3.png', 'f1.png'] },
-  { id: '15', name: "Dessert Kingdom", promotion: 'Member Discount', location: { top: '1200px', left: '1100px' }, price: '120', type: 'Dessert', spots: '4 spots left', joined: '0/4', buddies: [] },
-  { id: '16', name: "Chicken Rice", promotion: 'Free Soup', location: { top: '800px', left: '1200px' }, price: '40', type: 'Street Food', spots: '1 spots left', joined: '3/4', buddies: ['f2.png'] },
-  { id: '17', name: "Grill Station", promotion: 'Special Set', location: { top: '400px', left: '50px' }, price: '150', type: 'Western', spots: '2 spots left', joined: '2/4', buddies: ['f1.png', 'f2.png'] },
-  { id: '18', name: "Salad Garden", promotion: '10% Off', location: { top: '950px', left: '950px' }, price: '135', type: 'Healthy', spots: '3 spots left', joined: '1/4', buddies: ['f3.png'] },
-  { id: '19', name: "Icy Dessert", promotion: 'Free Topping', location: { top: '150px', left: '200px' }, price: '45', type: 'Dessert', spots: '2 spots left', joined: '1/3', buddies: ['f1.png'] },
-  { id: '20', name: "Coffee Club", promotion: 'Morning Set', location: { top: '20px', left: '600px' }, price: '95', type: 'Drinks', spots: '2 spots left', joined: '2/4', buddies: ['f2.png', 'f3.png'] },
+  { id: '1', name: "Chester's Grill (Samyan Mitrtown)", promotion: 'Promotion\n3 Free 2', location: { lat: 13.7328, lng: 100.5287 }, price: '120', type: 'Fast Food', spots: '1 slots left', joined: '4/5', buddies: ['https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&q=80', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80', 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100&q=80', 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=100&q=80'] },
+  { id: '2', name: "Street Somtum (Suanluang Square)", promotion: 'Somtum Deal\nBuy 2 Get 1', location: { lat: 13.7375, lng: 100.5255 }, price: '60', type: 'Street Food', spots: '3 spots left', joined: '1/4', buddies: ['https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&q=80'] },
+  { id: '3', name: "Noodle House (Siam Square)", promotion: 'Noodle Set\nFree Drink', location: { lat: 13.7441, lng: 100.5323 }, price: '45', type: 'Street Food', spots: '2 spots left', joined: '2/4', buddies: ['https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&q=80'] },
+  { id: '4', name: "Khao Man Gai (Samyan)", promotion: 'Specials\nOnly ฿50', location: { lat: 13.7330, lng: 100.5260 }, price: '50', type: 'Street Food', spots: '1 slots left', joined: '3/4', buddies: ['https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&q=80', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80', 'https://images.unsplash.com/photo-1554151228-14d9def656e4?w=100&q=80'] },
+  { id: '5', name: "Shabu On The Go (MBK)", promotion: 'Group Deal\n4 Pay 3', location: { lat: 13.7445, lng: 100.5299 }, price: '299', type: 'Buffet', spots: '1 slots left', joined: '3/4', buddies: ['https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=100&q=80', 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&q=80', 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&q=80'] },
+  { id: '6', name: "Sushi Express (Siam Paragon)", promotion: 'Sushi Box\n20% Off', location: { lat: 13.7462, lng: 100.5348 }, price: '450', type: 'Japanese', spots: '2 spots left', joined: '2/4', buddies: ['https://images.unsplash.com/photo-1517841905240-472988bad1fa?w=100&q=80', 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&q=80'] },
+  { id: '7', name: "Moo Ping (Chula Soi 12)", promotion: 'Moo Ping\nBuy 10 Get 1', location: { lat: 13.7360, lng: 100.5250 }, price: '10', type: 'Street Food', spots: '5 spots left', joined: '0/5', buddies: [] },
+  { id: '8', name: "Ramen Boss (Chamchuri Square)", promotion: 'Ramen Hot\nFree Gyoza', location: { lat: 13.7335, lng: 100.5298 }, price: '180', type: 'Japanese', spots: '1 spots left', joined: '3/4', buddies: ['https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100&q=80', 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&q=80', 'https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=100&q=80'] },
+  { id: '9', name: "Bubble Tea Bar (I'm Park)", promotion: 'Boba Fun\nBuy 1 Get 1', location: { lat: 13.7394, lng: 100.5243 }, price: '55', type: 'Drinks', spots: '2 spots left', joined: '1/3', buddies: ['https://images.unsplash.com/photo-1544717297-fa95b9ee91c3?w=100&q=80'] },
+  { id: '10', name: "Boat Noodle (Victory Monument Area)", promotion: 'Boat Noodle\n฿15 Only', location: { lat: 13.7649, lng: 100.5393 }, price: '15', type: 'Street Food', spots: '4 spots left', joined: '1/5', buddies: ['https://images.unsplash.com/photo-1552058544-f2b08422138a?w=100&q=80'] },
+  { id: '11', name: "Pad Thai J (Siam Square Soi 2)", promotion: 'Pad Thai\nFree Topping', location: { lat: 13.7435, lng: 100.5320 }, price: '65', type: 'Street Food', spots: '2 spots left', joined: '2/4', buddies: ['https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&q=80'] },
+  { id: '12', name: "Pizza Hut (Chamchuri Square)", promotion: 'Pizza Party\nBuy 1 Get 1', location: { lat: 13.7332, lng: 100.5295 }, price: '399', type: 'Fast Food', spots: '1 slots left', joined: '3/4', buddies: ['https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&q=80', 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=100&q=80'] },
+  { id: '13', name: "Thai Curry (Chula Canteen)", promotion: 'Curry Rice\nFree Soup', location: { lat: 13.7370, lng: 100.5330 }, price: '80', type: 'Street Food', spots: '3 spots left', joined: '1/4', buddies: ['https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=100&q=80'] },
+  { id: '14', name: "Craft Burger (Siam Square)", promotion: 'Burger Set\nFree Fries', location: { lat: 13.7445, lng: 100.5335 }, price: '250', type: 'Western', spots: '2 spots left', joined: '2/4', buddies: ['https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&q=80'] },
+  { id: '15', name: "Dessert Kingdom (I'm Park)", promotion: 'Sweet Treat\n10% Off', location: { lat: 13.7392, lng: 100.5245 }, price: '120', type: 'Dessert', spots: '4 spots left', joined: '0/4', buddies: [] },
+  { id: '16', name: "Chicken Rice (Samyan Market)", promotion: 'Chicken Set\nOnly ฿40', location: { lat: 13.7360, lng: 100.5280 }, price: '40', type: 'Street Food', spots: '1 spots left', joined: '3/4', buddies: ['https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100&q=80', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&q=80', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80'] },
+  { id: '17', name: "Grill Station (MBK Food Court)", promotion: 'Grill Day\nSpecial Set', location: { lat: 13.7440, lng: 100.5305 }, price: '150', type: 'Western', spots: '2 spots left', joined: '2/4', buddies: ['https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=100&q=80', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&q=80'] },
+  { id: '18', name: "Salad Garden (Siam Paragon)", promotion: 'Salad Bar\nFree Drink', location: { lat: 13.7465, lng: 100.5350 }, price: '135', type: 'Healthy', spots: '3 spots left', joined: '1/4', buddies: ['https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80'] },
+  { id: '19', name: "Icy Dessert (Suanluang Square)", promotion: 'Ice Cream\nExtra Scoop', location: { lat: 13.7372, lng: 100.5258 }, price: '45', type: 'Dessert', spots: '2 spots left', joined: '1/3', buddies: ['https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80'] },
+  { id: '20', name: "Coffee Club (CU Art Center)", promotion: 'Coffee Mix\nMorning Set', location: { lat: 13.7385, lng: 100.5320 }, price: '95', type: 'Drinks', spots: '2 spots left', joined: '2/4', buddies: ['https://images.unsplash.com/photo-1554151228-14d9def656e4?w=100&q=80', 'https://images.unsplash.com/photo-1517841905240-472988bad1fa?w=100&q=80'] },
+  { id: '21', name: "Thai Seafood", promotion: 'Seafood Day\n20% Off', location: { lat: 13.7290, lng: 100.5260 }, price: '499', type: 'Buffet', spots: '1 slots left', joined: '3/4', buddies: ['https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&q=80', 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=100&q=80', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&q=80'] },
+  { id: '22', name: "Korean BBQ", promotion: 'K-BBQ Fun\n4 Pay 3', location: { lat: 13.7380, lng: 100.5295 }, price: '350', type: 'Buffet', spots: '2 spots left', joined: '2/4', buddies: ['https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=100&q=80', 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&q=80'] },
+  { id: '23', name: "Isan Classic", promotion: 'Isan Hot\nFree Soup', location: { lat: 13.7325, lng: 100.5335 }, price: '80', type: 'Street Food', spots: '3 spots left', joined: '1/4', buddies: ['https://images.unsplash.com/photo-1517841905240-472988bad1fa?w=100&q=80'] },
+  { id: '24', name: "Taco Bell", promotion: 'Taco Twist\nTaco Tuesday', location: { lat: 13.7350, lng: 100.5245 }, price: '150', type: 'Fast Food', spots: '2 spots left', joined: '2/4', buddies: ['https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&q=80', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&q=80'] },
+  { id: '25', name: "Vegan Bowl", promotion: 'Green Day\n15% Off', location: { lat: 13.7305, lng: 100.5325 }, price: '180', type: 'Healthy', spots: '2 spots left', joined: '2/4', buddies: ['https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=100&q=80', 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=100&q=80'] },
+  { id: '26', name: "Matcha Lab", promotion: 'Matcha Fun\nBuy 1 Get 1', location: { lat: 13.7360, lng: 100.5270 }, price: '120', type: 'Drinks', spots: '1 spots left', joined: '2/3', buddies: ['https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&q=80', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80'] },
+  { id: '27', name: "Crepe Corner", promotion: 'Sweet Crepe\nFree Syrup', location: { lat: 13.7315, lng: 100.5310 }, price: '75', type: 'Dessert', spots: '2 spots left', joined: '1/3', buddies: ['https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&q=80'] },
+  { id: '28', name: "Steak House", promotion: 'Steak Night\nPremium Set', location: { lat: 13.7340, lng: 100.5250 }, price: '550', type: 'Western', spots: '1 spots left', joined: '3/4', buddies: ['https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=100&q=80', 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=100&q=80', 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&q=80'] },
+  { id: '29', name: "Gyoza King", promotion: 'Gyoza Box\nFree Side', location: { lat: 13.7295, lng: 100.5305 }, price: '140', type: 'Japanese', spots: '2 spots left', joined: '2/4', buddies: ['https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&q=80'] },
+  { id: '30', name: "Smoothie King", promotion: 'Fruit Mix\n15% Off', location: { lat: 13.7370, lng: 100.5265 }, price: '110', type: 'Drinks', spots: '3 spots left', joined: '1/4', buddies: ['https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=100&q=80'] },
+  { id: '31', name: "Chicken Rice J", promotion: 'Rice Set\nExtra Soup', location: { lat: 13.7320, lng: 100.5320 }, price: '55', type: 'Street Food', spots: '4 spots left', joined: '1/5', buddies: ['https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=100&q=80'] },
+  { id: '32', name: "Burger King", promotion: 'King Deal\nOnly ฿199', location: { lat: 13.7355, lng: 100.5290 }, price: '220', type: 'Fast Food', spots: '2 spots left', joined: '1/3', buddies: ['https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&q=80'] },
+  { id: '33', name: "Hot Pot City", promotion: 'Hot Pot Mix\nGroup Deal', location: { lat: 13.7300, lng: 100.5255 }, price: '399', type: 'Buffet', spots: '3 spots left', joined: '1/4', buddies: ['https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80'] },
+  { id: '34', name: "Izakaya Sun", promotion: 'Night Set\n10% Off', location: { lat: 13.7385, lng: 100.5300 }, price: '450', type: 'Japanese', spots: '1 spots left', joined: '3/4', buddies: ['https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&q=80', 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=100&q=80', 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=100&q=80'] },
+  { id: '35', name: "Pasta Palace", promotion: 'Pasta Love\nSpecial Set', location: { lat: 13.7330, lng: 100.5335 }, price: '280', type: 'Western', spots: '2 spots left', joined: '2/4', buddies: ['https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&q=80', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80'] },
+  { id: '36', name: "Boba Heaven", promotion: 'Boba Sweet\nBuy 2 Get 1', location: { lat: 13.7340, lng: 100.5275 }, price: '45', type: 'Drinks', spots: '2 spots left', joined: '1/3', buddies: ['https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&q=80'] },
+  { id: '37', name: "Açai Hub", promotion: 'Berry Hub\nSpecial Day', location: { lat: 13.7310, lng: 100.5295 }, price: '240', type: 'Healthy', spots: '2 spots left', joined: '1/3', buddies: ['https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=100&q=80'] },
+  { id: '38', name: "Pancake House", promotion: 'Pancake Mix\nFree Jam', location: { lat: 13.7365, lng: 100.5315 }, price: '160', type: 'Dessert', spots: '3 spots left', joined: '1/4', buddies: ['https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=100&q=80'] },
+  { id: '39', name: "Fried Chicken Hub", promotion: 'Chicken Fly\nFamily Box', location: { lat: 13.7290, lng: 100.5270 }, price: '130', type: 'Fast Food', spots: '1 spots left', joined: '3/4', buddies: ['https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&q=80', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&q=80'] },
+  { id: '40', name: "Tom Yum Legend", promotion: 'Tom Yum Hot\nFree Rice', location: { lat: 13.7390, lng: 100.5285 }, price: '90', type: 'Street Food', spots: '2 spots left', joined: '3/5', buddies: ['https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=100&q=80', 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=100&q=80', 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&q=80'] },
+  { id: '41', name: "Wagyu Grill", promotion: 'Wagyu Day\nSpecial Deal', location: { lat: 13.7325, lng: 100.5265 }, price: '850', type: 'Japanese', spots: '1 spots left', joined: '3/4', buddies: ['https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&q=80', 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=100&q=80'] },
+  { id: '42', name: "Caesar Salad Bar", promotion: 'Cool Salad\n10% Off', location: { lat: 13.7350, lng: 100.5310 }, price: '165', type: 'Healthy', spots: '3 spots left', joined: '1/4', buddies: ['https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=100&q=80'] },
+  { id: '43', name: "Gelato Art", promotion: 'Sweet Scoop\nBuy 2 Get 1', location: { lat: 13.7305, lng: 100.5240 }, price: '95', type: 'Dessert', spots: '2 spots left', joined: '2/4', buddies: ['https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&q=80', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80'] },
+  { id: '44', name: "Craft Cola", promotion: 'Craft Soda\nArtisan Deal', location: { lat: 13.7380, lng: 100.5320 }, price: '65', type: 'Drinks', spots: '2 spots left', joined: '1/3', buddies: ['https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&q=80'] },
+  { id: '45', name: "BBQ Ribs", promotion: 'Ribs Night\nFriday Feast', location: { lat: 13.7335, lng: 100.5340 }, price: '480', type: 'Western', spots: '1 spots left', joined: '3/4', buddies: ['https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=100&q=80', 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=100&q=80', 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&q=80'] },
+  { id: '46', name: "Sukiyaki Home", promotion: 'Suki Warm\nComfort Set', location: { lat: 13.7355, lng: 100.5250 }, price: '320', type: 'Japanese', spots: '2 spots left', joined: '2/4', buddies: ['https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&q=80'] },
+  { id: '47', name: "Somtum Garden", promotion: 'Isan Joy\nZesty Deal', location: { lat: 13.7315, lng: 100.5330 }, price: '70', type: 'Street Food', spots: '3 spots left', joined: '1/4', buddies: ['https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=100&q=80'] },
+  { id: '48', name: "Buffet Mania", promotion: 'Big Meal\nEat All Can', location: { lat: 13.7375, lng: 100.5305 }, price: '599', type: 'Buffet', spots: '2 spots left', joined: '3/5', buddies: ['https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=100&q=80', 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&q=80', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80'] },
+  { id: '49', name: "Wrap & Roll", promotion: 'Happy Wrap\nHealthy Mix', location: { lat: 13.7280, lng: 100.5295 }, price: '140', type: 'Healthy', spots: '2 spots left', joined: '2/4', buddies: ['https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&q=80', 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=100&q=80'] },
+  { id: '50', name: "Donut Hole", promotion: 'Donut Love\nBuy 5 Get 1', location: { lat: 13.7395, lng: 100.5275 }, price: '35', type: 'Dessert', spots: '5 spots left', joined: '0/5', buddies: [] },
 ];
 
+
 export default function App() {
+  return (
+    <UserProvider>
+      <MainApp />
+    </UserProvider>
+  );
+}
+
+function MainApp() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('splash');
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [preferences, setPreferences] = useState<UserPreferences>({
@@ -64,7 +125,7 @@ export default function App() {
   // Automatically transition splash
   useEffect(() => {
     if (currentScreen === 'splash') {
-      const timer = setTimeout(() => setCurrentScreen('setup'), 2000);
+      const timer = setTimeout(() => setCurrentScreen('login'), 2000);
       return () => clearTimeout(timer);
     }
   }, [currentScreen]);
@@ -72,13 +133,16 @@ export default function App() {
   const renderScreen = () => {
     switch (currentScreen) {
       case 'splash': return <SplashScreen />;
+      case 'login': return <LoginScreen onLogin={() => setCurrentScreen('setup')} onNavigate={setCurrentScreen} />;
+      case 'signup': return <SignUpScreen onSignUp={() => setCurrentScreen('setup')} onNavigate={setCurrentScreen} />;
       case 'setup': return <SetupScreen onComplete={(p) => { setPreferences(p); setCurrentScreen('home'); }} />;
       case 'home': return <HomeScreen preferences={preferences} onNavigate={setCurrentScreen} />;
       case 'food-map': return <MapScreen onNavigate={setCurrentScreen} selectedRestaurant={selectedRestaurant} setSelectedRestaurant={setSelectedRestaurant} />;
       case 'matching': return <MatchingScreen onNavigate={setCurrentScreen} selectedRestaurant={selectedRestaurant} />;
       case 'confirmation': return <ConfirmationScreen preferences={preferences} onNavigate={setCurrentScreen} />;
-      case 'what-to-eat-intro': return <WhatToEatIntro onNavigate={setCurrentScreen} />;
-      case 'what-to-eat-result': return <WhatToEatResult onNavigate={setCurrentScreen} />;
+      case 'what-to-eat-intro': return <WhatToEatIntro onNavigate={setCurrentScreen} setSelectedRestaurant={setSelectedRestaurant} />;
+      case 'what-to-eat-result': return <WhatToEatResult onNavigate={setCurrentScreen} restaurant={selectedRestaurant} />;
+      case 'profile': return <ProfileScreen onNavigate={setCurrentScreen} preferences={preferences} setPreferences={setPreferences} />;
       default: return <SplashScreen />;
     }
   };
@@ -90,7 +154,7 @@ export default function App() {
       </AnimatePresence>
       
       {/* Bottom Nav */}
-      {!['splash', 'setup', 'confirmation', 'matching'].includes(currentScreen) && (
+      {!['splash', 'login', 'signup', 'setup', 'confirmation', 'matching'].includes(currentScreen) && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-48px)] max-w-sm h-[72px] bg-surface rounded-[100px] shadow-[0px_4px_30px_rgba(0,0,0,0.15)] flex items-center justify-between px-2 z-50 border border-white/20">
           <NavButton 
             active={currentScreen === 'home'} 
@@ -116,6 +180,33 @@ export default function App() {
   );
 }
 
+// --- Context ---
+interface UserContextType {
+  profileImage: string;
+  setProfileImage: (url: string) => void;
+  userName: string;
+  setUserName: (name: string) => void;
+}
+
+const UserContext = createContext<UserContextType | undefined>(undefined);
+
+function UserProvider({ children }: { children: React.ReactNode }) {
+  const [profileImage, setProfileImage] = useState('https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=200&q=80');
+  const [userName, setUserName] = useState('View');
+
+  return (
+    <UserContext.Provider value={{ profileImage, setProfileImage, userName, setUserName }}>
+      {children}
+    </UserContext.Provider>
+  );
+}
+
+function useUser() {
+  const context = useContext(UserContext);
+  if (!context) throw new Error('useUser must be used within a UserProvider');
+  return context;
+}
+
 // --- Components ---
 
 function NavButton({ active, icon: Icon, label, onClick }: { active: boolean; icon: any; label: string; onClick: () => void }) {
@@ -139,14 +230,171 @@ function NavButton({ active, icon: Icon, label, onClick }: { active: boolean; ic
   );
 }
 
-function Header() {
+function Header({ onProfileClick }: { onProfileClick?: () => void }) {
+  const { profileImage } = useUser();
   return (
-    <div className="sticky top-0 z-50 w-full h-16 px-6 bg-surface/80 backdrop-blur-md flex justify-between items-center border-b border-black/5">
+    <div className="sticky top-0 z-50 w-full h-16 px-6 bg-surface/80 backdrop-blur-md flex justify-between items-center">
       <h1 className="text-primary text-2xl font-extrabold font-display leading-8">Kinkhum</h1>
-      <div className="w-9 h-9 rounded-full overflow-hidden border border-black/5 shadow-sm">
-        <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&q=80" alt="Profile" className="w-full h-full object-cover" />
-      </div>
+      <button 
+        onClick={onProfileClick}
+        className="w-9 h-9 rounded-full overflow-hidden shadow-sm active:scale-95 transition-transform border border-primary/20"
+      >
+        <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+      </button>
     </div>
+  );
+}
+
+function ProfileScreen({ onNavigate, preferences, setPreferences }: { onNavigate: (s: Screen) => void; preferences: UserPreferences; setPreferences: (p: UserPreferences) => void }) {
+  const { profileImage, setProfileImage, userName: globalUserName, setUserName: setGlobalUserName } = useUser();
+  const [localUserName, setLocalUserName] = useState(globalUserName);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [localImagePreview, setLocalImagePreview] = useState(profileImage);
+  const [hasChanges, setHasChanges] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const previewUrl = URL.createObjectURL(file);
+      setLocalImagePreview(previewUrl);
+      setHasChanges(true);
+    }
+  };
+
+  const handleNameChange = (newName: string) => {
+    setLocalUserName(newName);
+    setHasChanges(true);
+  };
+
+  const handleSave = () => {
+    setProfileImage(localImagePreview);
+    setGlobalUserName(localUserName);
+    setHasChanges(false);
+  };
+
+  const menuItems = [
+    { icon: User, label: 'Personal Info', color: 'bg-orange-50 text-brand-amber' },
+    { icon: Ban, label: 'Dietary Preferences', color: 'bg-red-50 text-red-500', detail: preferences.halal ? 'Halal' : preferences.vegetarian ? 'Vegetarian' : 'None' },
+    { icon: Wallet, label: 'Budget Settings', color: 'bg-green-50 text-green-600', detail: `฿${preferences.budget}/day` },
+    { icon: History, label: 'History', color: 'bg-blue-50 text-blue-500' },
+    { icon: Settings, label: 'Settings', color: 'bg-stone-100 text-stone-600' },
+    { icon: ShieldCheck, label: 'Privacy & Security', color: 'bg-purple-50 text-purple-500' },
+  ];
+
+  return (
+    <motion.div 
+      initial={{ x: '100%' }}
+      animate={{ x: 0 }}
+      exit={{ x: '100%' }}
+      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+      className="fixed inset-0 bg-[#FFFDF0] z-[60] flex flex-col overflow-y-auto no-scrollbar"
+    >
+      {/* Header */}
+      <div className="px-6 pt-14 pb-6 flex items-center justify-between">
+        <button 
+          onClick={() => onNavigate('home')}
+          className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-zinc-800 active:scale-90 transition-transform"
+        >
+          <ChevronLeft size={24} />
+        </button>
+        <h2 className="text-xl font-black uppercase tracking-widest text-zinc-800 italic">Profile</h2>
+        {hasChanges ? (
+          <button 
+            onClick={handleSave}
+            className="px-4 py-2 bg-brand-amber text-white rounded-xl font-bold text-sm shadow-md active:scale-95 transition-all"
+          >
+            Save
+          </button>
+        ) : (
+          <div className="w-12" />
+        )}
+      </div>
+
+      <div className="flex-1 px-6 pb-12">
+        {/* Profile Info Card */}
+        <div className="flex flex-col items-center mb-10 pt-4">
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            className="hidden" 
+            accept="image/*"
+          />
+          <div className="relative mb-6 cursor-pointer" onClick={handleImageClick}>
+            <div className="w-32 h-32 rounded-[40px] overflow-hidden border-4 border-white shadow-xl ring-1 ring-black/5">
+              <img src={localImagePreview} alt="Avatar" className="w-full h-full object-cover" />
+            </div>
+            <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-brand-amber text-white shadow-lg flex items-center justify-center border-2 border-[#FFFDF0] hover:brightness-110 active:scale-90 transition-transform">
+              <Camera size={18} />
+            </div>
+          </div>
+          
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex items-center gap-2">
+              {isEditingName ? (
+                <input 
+                  autoFocus
+                  className="bg-transparent text-3xl font-black text-center outline-none border-b-2 border-brand-amber/30 w-32"
+                  value={localUserName}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  onBlur={() => setIsEditingName(false)}
+                  onKeyDown={(e) => e.key === 'Enter' && setIsEditingName(false)}
+                />
+              ) : (
+                <h1 className="text-3xl font-black italic tracking-tight text-zinc-900">{localUserName}</h1>
+              )}
+              <button 
+                onClick={() => setIsEditingName(!isEditingName)}
+                className="p-1.5 rounded-full bg-white text-stone-400 shadow-sm active:scale-90 transition-transform"
+              >
+                <Pencil size={12} />
+              </button>
+            </div>
+            <p className="text-stone-400 text-sm font-medium">Standard Member</p>
+          </div>
+        </div>
+
+        {/* Settings List */}
+        <div className="space-y-3">
+          {menuItems.map((item, i) => (
+            <motion.button
+              key={item.label}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + i * 0.05 }}
+              className="w-full p-5 bg-white rounded-[32px] flex items-center justify-between shadow-sm active:scale-[0.98] transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-2xl ${item.color} flex items-center justify-center transition-transform group-hover:scale-110`}>
+                  <item.icon size={22} strokeWidth={2.5} />
+                </div>
+                <div className="text-left">
+                  <p className="text-zinc-800 font-bold text-base leading-tight">{item.label}</p>
+                  {item.detail && <p className="text-stone-400 text-xs font-medium mt-0.5">{item.detail}</p>}
+                </div>
+              </div>
+              <ChevronRight size={20} className="text-stone-300 group-hover:translate-x-1 transition-transform" />
+            </motion.button>
+          ))}
+        </div>
+
+        {/* Logout Section */}
+        <div className="mt-10">
+          <button 
+            onClick={() => onNavigate('login')}
+            className="w-full py-5 bg-red-50 text-red-500 rounded-[32px] flex items-center justify-center gap-3 font-black uppercase tracking-widest active:scale-95 transition-all"
+          >
+            <LogOut size={20} />
+            Logout
+          </button>
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
@@ -158,14 +406,250 @@ function SplashScreen() {
       exit={{ opacity: 0 }}
       className="fixed inset-0 bg-primary flex flex-col items-center justify-center z-50"
     >
-      <div className="relative mb-8">
-        <svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
-           {/* Simple Line Art Placeholder - In a real app we'd use the SVG from design */}
-           <circle cx="120" cy="120" r="100" stroke="white" strokeWidth="2" strokeDasharray="6 3" />
-           <path d="M120 70C120 70 80 110 80 140C80 162.091 97.9086 180 120 180C142.091 180 160 162.091 160 140C160 110 120 70 120 70Z" stroke="white" strokeWidth="2" />
-        </svg>
-      </div>
       <h1 className="text-white text-6xl font-black italic tracking-tighter">Kin-khum</h1>
+    </motion.div>
+  );
+}
+
+function LoginScreen({ onLogin, onNavigate }: { onLogin: () => void; onNavigate: (s: Screen) => void }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const timerRef = useRef<any>(null);
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    setShowPassword(true);
+    
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    
+    timerRef.current = setTimeout(() => {
+      setShowPassword(false);
+    }, 2500); // 2.5 seconds as requested (2-3s)
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="flex-1 flex flex-col items-center bg-white h-screen overflow-y-auto"
+    >
+      <Header onProfileClick={() => onNavigate('profile')} />
+      <div className="flex-1 w-full flex flex-col items-center px-8 text-center py-10">
+        <motion.h1 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="text-[#F9873E] text-[56px] font-black leading-tight mb-2"
+        >
+          Welcome
+        </motion.h1>
+        <motion.p 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-stone-500 text-lg font-medium leading-relaxed max-w-[300px] mb-12"
+        >
+          Your personal culinary concierge for smart dining.
+        </motion.p>
+
+        {/* Input Fields */}
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="w-full space-y-4 mb-10"
+        >
+          <div className="relative group">
+            <input 
+              type="email" 
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-8 py-5 bg-stone-50 rounded-[28px] border-2 border-stone-50 focus:border-[#F9873E]/30 focus:bg-white transition-all outline-none text-zinc-800 font-bold placeholder:text-stone-300"
+            />
+          </div>
+          <div className="relative group">
+            <input 
+              type={showPassword ? "text" : "password"} 
+              placeholder="Password"
+              value={password}
+              onChange={handlePasswordChange}
+              className="w-full px-8 py-5 bg-stone-50 rounded-[28px] border-2 border-stone-50 focus:border-[#F9873E]/30 focus:bg-white transition-all outline-none text-zinc-800 font-bold placeholder:text-stone-300"
+            />
+          </div>
+          <div className="text-right px-4">
+             <button className="text-stone-400 text-sm font-bold">ลืมรหัสผ่าน?</button>
+          </div>
+        </motion.div>
+
+        <div className="w-full flex flex-col items-center gap-6">
+           <p className="text-stone-400 text-xs font-black uppercase tracking-widest">Connect with</p>
+           <div className="flex gap-4">
+             <button 
+               onClick={onLogin}
+               className="w-14 h-14 rounded-full border-2 border-stone-50 flex items-center justify-center shadow-sm active:scale-90 transition-transform bg-white cursor-pointer"
+             >
+               <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" className="w-8 h-8" alt="Google" />
+             </button>
+             <div className="w-14 h-14 rounded-full border-2 border-stone-50 flex items-center justify-center shadow-sm active:scale-90 transition-transform bg-black">
+               <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" className="w-7 h-7 invert" alt="Apple" />
+             </div>
+             <div className="w-14 h-14 rounded-full border-2 border-stone-50 flex items-center justify-center shadow-sm active:scale-90 transition-transform bg-[#00B900]">
+               <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" className="w-8 h-8" alt="LINE" />
+             </div>
+             <div className="w-14 h-14 rounded-full border-2 border-stone-50 flex items-center justify-center shadow-sm active:scale-90 transition-transform bg-[#1877F2]">
+               <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" className="w-8 h-8" alt="Facebook" />
+             </div>
+           </div>
+        </div>
+      </div>
+
+      <div className="w-full px-8 pb-12 flex flex-col items-center gap-5">
+        <button 
+          onClick={onLogin}
+          className="w-full py-6 bg-[#F9873E] rounded-[32px] text-white text-3xl font-black active:scale-[0.85] transition-transform shadow-xl shadow-[#F9873E]/20"
+        >
+          เข้าสู่ระบบ
+        </button>
+        <p className="text-stone-500 font-medium">
+          ยังไม่มีสมาชิก? <button onClick={() => onNavigate('signup')} className="text-[#F9873E] font-bold">สมัครสมาชิก</button>
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
+function SignUpScreen({ onSignUp, onNavigate }: { onSignUp: () => void; onNavigate: (s: Screen) => void }) {
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const timerRef = useRef<any>(null);
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    setShowPassword(true);
+    
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    
+    timerRef.current = setTimeout(() => {
+      setShowPassword(false);
+    }, 2500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="flex-1 flex flex-col items-center bg-white h-screen overflow-y-auto"
+    >
+      <Header onProfileClick={() => onNavigate('profile')} />
+      <div className="flex-1 w-full flex flex-col items-center px-8 text-center py-10">
+        <motion.h1 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="text-[#F9873E] text-[56px] font-black leading-tight mb-2"
+        >
+          Join Us
+        </motion.h1>
+        <motion.p 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-stone-500 text-lg font-medium leading-relaxed max-w-[300px] mb-12"
+        >
+          Create your account and start saving on your meals.
+        </motion.p>
+
+        {/* Input Fields */}
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="w-full space-y-4 mb-10"
+        >
+          <div className="relative group">
+            <input 
+              type="text" 
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-8 py-5 bg-stone-50 rounded-[28px] border-2 border-stone-50 focus:border-[#F9873E]/30 focus:bg-white transition-all outline-none text-zinc-800 font-bold placeholder:text-stone-300"
+            />
+          </div>
+          <div className="relative group">
+            <input 
+              type="email" 
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-8 py-5 bg-stone-50 rounded-[28px] border-2 border-stone-50 focus:border-[#F9873E]/30 focus:bg-white transition-all outline-none text-zinc-800 font-bold placeholder:text-stone-300"
+            />
+          </div>
+          <div className="relative group">
+            <input 
+              type={showPassword ? "text" : "password"} 
+              placeholder="Password"
+              value={password}
+              onChange={handlePasswordChange}
+              className="w-full px-8 py-5 bg-stone-50 rounded-[28px] border-2 border-stone-50 focus:border-[#F9873E]/30 focus:bg-white transition-all outline-none text-zinc-800 font-bold placeholder:text-stone-300"
+            />
+          </div>
+        </motion.div>
+
+        <div className="w-full flex flex-col items-center gap-6">
+           <p className="text-stone-400 text-xs font-black uppercase tracking-widest">Connect with</p>
+           <div className="flex gap-4">
+             <button 
+               onClick={onSignUp}
+               className="w-14 h-14 rounded-full border-2 border-stone-50 flex items-center justify-center shadow-sm active:scale-90 transition-transform bg-white cursor-pointer"
+             >
+               <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" className="w-8 h-8" alt="Google" />
+             </button>
+             <div className="w-14 h-14 rounded-full border-2 border-stone-50 flex items-center justify-center shadow-sm active:scale-90 transition-transform bg-black">
+               <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" className="w-7 h-7 invert" alt="Apple" />
+             </div>
+             <div className="w-14 h-14 rounded-full border-2 border-stone-50 flex items-center justify-center shadow-sm active:scale-90 transition-transform bg-[#00B900]">
+               <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" className="w-8 h-8" alt="LINE" />
+             </div>
+             <div className="w-14 h-14 rounded-full border-2 border-stone-50 flex items-center justify-center shadow-sm active:scale-90 transition-transform bg-[#1877F2]">
+               <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" className="w-8 h-8" alt="Facebook" />
+             </div>
+           </div>
+        </div>
+      </div>
+
+      <div className="w-full px-8 pb-12 flex flex-col items-center gap-5">
+        <button 
+          onClick={onSignUp}
+          className="w-full py-6 bg-[#F9873E] rounded-[32px] text-white text-3xl font-black active:scale-[0.85] transition-transform shadow-xl shadow-[#F9873E]/20"
+        >
+          สมัครสมาชิก
+        </button>
+        <p className="text-stone-500 font-medium">
+          มีสมาชิกอยู่แล้ว? <button onClick={() => onNavigate('login')} className="text-[#F9873E] font-bold">เข้าสู่ระบบ</button>
+        </p>
+      </div>
     </motion.div>
   );
 }
@@ -285,6 +769,7 @@ function FilterTag({ active, label, onClick }: { active: boolean; label: string;
 }
 
 function HomeScreen({ preferences, onNavigate }: { preferences: UserPreferences; onNavigate: (s: Screen) => void }) {
+  const { userName } = useUser();
   // Simulating a fixed daily expenditure to show the logic
   const spentToday = 70; 
   const remainingToday = Math.max(0, preferences.budget - spentToday);
@@ -300,9 +785,9 @@ function HomeScreen({ preferences, onNavigate }: { preferences: UserPreferences;
       animate={{ opacity: 1 }}
       className="flex-1 flex flex-col pb-32"
     >
-      <Header />
+      <Header onProfileClick={() => onNavigate('profile')} />
       <div className="px-6 py-6 border-b border-black/5 bg-white/50 backdrop-blur-sm">
-        <h2 className="text-4xl font-bold mb-1">Hello, View</h2>
+        <h2 className="text-4xl font-bold mb-1">Hello, {userName}</h2>
         <p className="text-accent/60 text-lg decoration-primary/30 underline underline-offset-8">Ready to plate up some savings today?</p>
       </div>
 
@@ -374,16 +859,64 @@ function HomeScreen({ preferences, onNavigate }: { preferences: UserPreferences;
   );
 }
 
-function MapScreen({ onNavigate, selectedRestaurant, setSelectedRestaurant }: { onNavigate: (s: Screen) => void; selectedRestaurant: Restaurant | null; setSelectedRestaurant: (r: Restaurant | null) => void }) {
-  const [activeFilter, setActiveFilter] = useState('All');
+// Helper to recenter map
+function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView([lat, lng], 16, { animate: true });
+  }, [lat, lng, map]);
+  return null;
+}
 
-  const filteredRestaurants = activeFilter === 'All' 
-    ? RESTAURANTS 
-    : RESTAURANTS.filter(r => {
-        if (activeFilter === 'Under 100 THB') return parseInt(r.price) < 100;
-        if (activeFilter === 'Street Food') return r.type === 'Street Food';
-        return true;
-      });
+function MapScreen({ onNavigate, selectedRestaurant, setSelectedRestaurant }: { onNavigate: (s: Screen) => void; selectedRestaurant: Restaurant | null; setSelectedRestaurant: (r: Restaurant | null) => void }) {
+  const [showFilters, setShowFilters] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({
+    price: 'All',
+    category: 'All'
+  });
+
+  const filteredRestaurants = RESTAURANTS.filter(r => {
+    const matchesSearch = r.name.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesPrice = filters.price === 'All' || 
+      (filters.price === 'Under 100 THB' && parseInt(r.price) < 100) ||
+      (filters.price === '100 - 300 THB' && parseInt(r.price) >= 100 && parseInt(r.price) <= 300) ||
+      (filters.price === 'Over 300 THB' && parseInt(r.price) > 300);
+    
+    const matchesCategory = filters.category === 'All' || r.type === filters.category;
+    
+    return matchesSearch && matchesPrice && matchesCategory;
+  });
+
+  const panToRestaurant = (rest: Restaurant) => {
+    setSelectedRestaurant(rest);
+    setSearchQuery('');
+  };
+
+  // Custom marker icon creation
+  const createMarkerIcon = (price: string, active: boolean, variant: 'primary' | 'dark') => {
+    // Coral Orange (#FF7F50) for recommended/value, Dark Gray (#2D2D2D) for others
+    const colorClass = active ? '#FF7F50' : (variant === 'dark' ? '#2D2D2D' : '#FF7F50');
+    const iconSize = active ? 'scale-125' : 'scale-100';
+
+    return L.divIcon({
+      className: 'custom-div-icon',
+      html: `
+        <div class="flex flex-col items-center -translate-x-1/2 -translate-y-[100%] transition-all duration-300 ${iconSize}">
+          <div class="px-2.5 py-1.5 rounded-full shadow-md drop-shadow-sm flex items-center gap-1" style="background-color: ${colorClass};">
+            <div class="w-2.5 h-2.5 bg-white rounded-full flex items-center justify-center overflow-hidden">
+               <svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="${colorClass}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m18 8-8 8-4-4"/></svg>
+            </div>
+            <span class="text-white text-[10px] font-bold whitespace-nowrap">${price} THB</span>
+          </div>
+          <div class="w-[2px] h-2.5 -mt-px shadow-sm" style="background-color: ${colorClass};"></div>
+        </div>
+      `,
+      iconSize: [30, 42],
+      iconAnchor: [15, 42],
+    });
+  };
 
   return (
     <motion.div 
@@ -391,117 +924,217 @@ function MapScreen({ onNavigate, selectedRestaurant, setSelectedRestaurant }: { 
       animate={{ opacity: 1 }}
       className="flex-1 flex flex-col relative h-[100dvh] bg-stone-100 overflow-hidden"
     >
-      <Header />
+      <Header onProfileClick={() => onNavigate('profile')} />
 
-      {/* Pannable Map Container */}
-      <motion.div 
-        drag
-        dragConstraints={{ left: -1000, right: 0, top: -800, bottom: 0 }}
-        dragElastic={0.05}
-        className="absolute inset-0 z-0 w-[2000px] h-[1800px] cursor-grab active:cursor-grabbing"
-        onClick={(e) => {
-          if (e.target === e.currentTarget) setSelectedRestaurant(null);
-        }}
-      >
-        {/* Background Map Image */}
-        <div className="absolute inset-0">
-          <img 
-            className="w-full h-full object-cover grayscale opacity-10" 
-            src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=2000&q=80" 
-            alt="Map Background"
+      {/* Leaflet Map Container */}
+      <div className="absolute inset-x-0 bottom-0 top-16 z-0">
+        <MapContainer 
+          center={[SAMYAN_CENTER.lat, SAMYAN_CENTER.lng]} 
+          zoom={16} 
+          scrollWheelZoom={true}
+          style={{ height: '100%', width: '100%', outline: 'none' }}
+          zoomControl={false}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+            className="map-tiles grayscale-[0.2]"
           />
-          {/* Detailed Map Grid */}
-          <div className="absolute inset-0 opacity-10" 
-               style={{ 
-                 backgroundImage: 'linear-gradient(#000 1.5px, transparent 1.5px), linear-gradient(90deg, #000 1.5px, transparent 1.5px)', 
-                 backgroundSize: '100px 100px' 
-               }} />
-        </div>
-
-        {/* Map Markers */}
-        <div className="absolute inset-0 pointer-events-none">
-          {filteredRestaurants.map(rest => (
-            <MapMarker 
-              key={rest.id} 
-              top={rest.location.top} 
-              left={rest.location.left} 
-              price={rest.price} 
-              active={selectedRestaurant?.id === rest.id}
-              onClick={() => setSelectedRestaurant(selectedRestaurant?.id === rest.id ? null : rest)}
-              variant={parseInt(rest.price) > 100 ? 'dark' : 'primary'}
-            />
-          ))}
-        </div>
-
-        {/* Promotion Overlay */}
-        <AnimatePresence mode="wait">
+          
           {selectedRestaurant && (
-            <motion.div 
-              key={`promo-${selectedRestaurant.id}`}
-              initial={{ scale: 0.8, opacity: 0, x: '-50%', y: '-100%' }}
-              animate={{ scale: 1, opacity: 1, x: '-50%', y: '-100%' }}
-              exit={{ scale: 0.8, opacity: 0, x: '-50%', y: '-100%' }}
-              style={{ 
-                top: `calc(${selectedRestaurant.location.top} - 12px)`, 
-                left: selectedRestaurant.location.left 
-              }}
-              className="absolute z-40 mb-6"
-            >
-              <div className="w-[160px] h-[130px] relative rounded-[32px] border-4 border-primary overflow-hidden shadow-2xl bg-white">
-                <img src="f1.png" className="absolute inset-0 w-full h-full object-cover opacity-80" alt="Promotion" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col items-center justify-end pb-3 font-sans">
-                  <div className="text-center text-white text-base font-bold leading-tight drop-shadow-md px-2">
-                    {selectedRestaurant.promotion.split(' ').slice(0, 2).join(' ')} <br/>
-                    {selectedRestaurant.promotion.split(' ').slice(2).join(' ')}
-                  </div>
-                </div>
-              </div>
-              <div className="flex justify-center -mt-px">
-                <div className="w-4 h-4 bg-primary rotate-45 -mt-2" />
-              </div>
-            </motion.div>
+            <RecenterMap lat={selectedRestaurant.location.lat} lng={selectedRestaurant.location.lng} />
           )}
-        </AnimatePresence>
-      </motion.div>
+
+          {filteredRestaurants.map(rest => (
+            <Marker 
+              key={rest.id} 
+              position={[rest.location.lat, rest.location.lng]}
+              icon={createMarkerIcon(rest.price, selectedRestaurant?.id === rest.id, parseInt(rest.price) > 100 ? 'dark' : 'primary')}
+              eventHandlers={{
+                click: () => setSelectedRestaurant(selectedRestaurant?.id === rest.id ? null : rest),
+              }}
+            >
+              {selectedRestaurant?.id === rest.id && (
+                <Popup className="custom-popup" closeButton={false} offset={[0, -60]}>
+                  <div className="w-[192px] h-[160px] relative rounded-[32px] overflow-hidden shadow-2xl bg-white outline outline-[3px] outline-offset-[-3px] outline-[#F9873E]">
+                    <img 
+                      src={`https://images.unsplash.com/photo-${['1504674900247-0877df9cc836', '1540189549336-e6e99c3679fe', '1565299624946-b28f40a0ae38', '1493770348161-369560ae357d'][parseInt(rest.id) % 4]}?w=400&q=80`} 
+                      className="absolute inset-0 w-full h-full object-cover" 
+                      alt="Promotion" 
+                    />
+                    {/* Gradient Overlay for Text Legibility */}
+                    <div className="absolute inset-x-0 bottom-0 top-1/2 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                    
+                    {/* Figma-styled Content */}
+                    <div className="absolute inset-0 px-4 pt-20 flex items-center justify-center">
+                       <div className="text-center text-white text-xl font-medium font-['Lexend'] leading-6 whitespace-pre-line drop-shadow-lg">
+                         {rest.promotion}
+                       </div>
+                    </div>
+                  </div>
+                </Popup>
+              )}
+            </Marker>
+          ))}
+        </MapContainer>
+      </div>
 
       {/* Fixed Overlays (Search, Bottom Card) */}
       <div className="pointer-events-none absolute inset-0 z-30">
         {/* Search and Filters */}
         <div className="pointer-events-auto absolute left-[18px] top-[96px] w-[calc(100%-36px)] flex flex-col gap-3">
           {/* Search Bar */}
-          <div className="self-stretch px-5 py-2 bg-white/95 rounded-full shadow-lg border border-white/40 backdrop-blur-md flex items-center h-14">
+          <div className="self-stretch px-5 py-2 bg-white/95 rounded-full shadow-xl drop-shadow-md border border-white/40 backdrop-blur-md flex items-center h-14">
               <Search size={20} className="text-stone-400 ml-1" />
               <input 
                 type="text"
-                placeholder="Explore the map..."
+                placeholder="Explore Chula area map..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex-1 px-3 bg-transparent outline-none placeholder-stone-400 text-stone-600 text-base font-normal font-sans"
               />
               <div className="w-[1px] h-6 bg-stone-200 mx-2" />
-              <SlidersHorizontal size={20} className="text-brand-amber mr-1" />
+              <button 
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center justify-center transition-colors ${showFilters ? 'text-brand-amber' : 'text-stone-400'}`}
+              >
+                <SlidersHorizontal size={20} className="mr-1" />
+              </button>
           </div>
 
-          {/* Filter Chips */}
-          <div className="self-stretch h-12 flex gap-2 overflow-x-auto no-scrollbar relative w-full">
-              {['All', 'Under 100 THB', 'Street Food', 'Open Now'].map(filter => (
+          {/* Search Suggestions */}
+          <AnimatePresence>
+            {searchQuery.length > 0 && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="bg-white/95 rounded-[24px] shadow-xl border border-stone-100 overflow-hidden backdrop-blur-md max-h-[300px] overflow-y-auto no-scrollbar"
+              >
+                {filteredRestaurants.length > 0 ? (
+                  filteredRestaurants.map(r => (
+                    <button 
+                      key={r.id}
+                      onClick={() => panToRestaurant(r)}
+                      className="w-full px-5 py-4 flex items-center gap-4 hover:bg-stone-50 transition-colors border-b border-stone-50 last:border-0"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                        <Utensils size={20} />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <div className="text-sm font-bold text-stone-800">{r.name}</div>
+                        <div className="text-[10px] text-stone-500 font-medium uppercase tracking-wider">{r.type} • {r.price} THB</div>
+                      </div>
+                      <ChevronRight size={16} className="text-stone-300" />
+                    </button>
+                  ))
+                ) : (
+                  <div className="p-8 text-center">
+                    <p className="text-stone-400 text-sm font-medium">No results found for "{searchQuery}"</p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* New Active Filters Display (Optional but helpful) */}
+          {(filters.price !== 'All' || filters.category !== 'All') && (
+            <div className="flex gap-2 px-2 overflow-x-auto no-scrollbar">
+              {filters.price !== 'All' && (
+                <div className="bg-brand-amber/10 border border-brand-amber/20 px-3 py-1 rounded-full flex items-center">
+                  <span className="text-xs font-bold text-brand-amber">{filters.price}</span>
+                </div>
+              )}
+              {filters.category !== 'All' && (
+                <div className="bg-brand-amber/10 border border-brand-amber/20 px-3 py-1 rounded-full flex items-center">
+                  <span className="text-xs font-bold text-brand-amber">{filters.category}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Filter Modal Overlay */}
+        <AnimatePresence>
+          {showFilters && (
+            <>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowFilters(false)}
+                className="pointer-events-auto absolute inset-0 bg-stone-900/40 backdrop-blur-sm z-[90]"
+              />
+              <motion.div 
+                initial={{ y: -20, opacity: 0, scale: 0.95 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: -20, opacity: 0, scale: 0.95 }}
+                className="pointer-events-auto absolute top-32 left-1/2 -translate-x-1/2 w-[calc(100%-48px)] max-sm:w-[calc(100%-32px)] max-w-sm bg-white rounded-[40px] shadow-2xl z-[100] p-8 overflow-hidden"
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold font-display text-zinc-800">Map Filters</h3>
+                  <button 
+                    onClick={() => {
+                      setFilters({ price: 'All', category: 'All' });
+                    }}
+                    className="text-xs font-bold text-brand-amber uppercase tracking-wider"
+                  >
+                    Reset All
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Price Filter */}
+                  <div className="space-y-3">
+                    <span className="text-xs font-black text-stone-400 uppercase tracking-[2px]">Budget Per Person</span>
+                    <div className="flex flex-wrap gap-2">
+                      {['All', 'Under 100 THB', '100 - 300 THB', 'Over 300 THB'].map(p => (
+                        <button
+                          key={p}
+                          onClick={() => setFilters(prev => ({ ...prev, price: p }))}
+                          className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all ${
+                            filters.price === p 
+                            ? 'bg-brand-amber text-white shadow-lg shadow-brand-amber/20' 
+                            : 'bg-stone-50 text-stone-600 border border-stone-200'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Category Filter */}
+                  <div className="space-y-3">
+                    <span className="text-xs font-black text-stone-400 uppercase tracking-[2px]">Food Category</span>
+                    <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto no-scrollbar pb-2">
+                      {['All', 'Street Food', 'Fast Food', 'Buffet', 'Japanese', 'Western', 'Drinks', 'Healthy', 'Dessert'].map(c => (
+                        <button
+                          key={c}
+                          onClick={() => setFilters(prev => ({ ...prev, category: c }))}
+                          className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all ${
+                            filters.category === c 
+                            ? 'bg-brand-amber text-white shadow-lg shadow-brand-amber/20' 
+                            : 'bg-stone-50 text-stone-600 border border-stone-200'
+                          }`}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
                 <button 
-                  key={filter}
-                  onClick={() => setActiveFilter(filter)}
-                  className={`px-6 py-2 rounded-full shadow-md flex items-center justify-center shrink-0 transition-all ${
-                    activeFilter === filter ? 'bg-brand-amber text-white' : 'bg-white/80 border border-stone-200 backdrop-blur-md text-stone-600'
-                  }`}
+                  onClick={() => setShowFilters(false)}
+                  className="w-full mt-8 py-4 bg-zinc-800 rounded-3xl text-white font-bold tracking-widest active:scale-95 transition-all shadow-xl"
                 >
-                  <span className="text-base font-semibold font-sans">{filter}</span>
+                  APPLY FILTERS
                 </button>
-              ))}
-          </div>
-        </div>
-
-        {/* Recenter Button Tooltip style */}
-        <div className="pointer-events-auto absolute right-6 top-64 flex flex-col gap-3">
-          <div className="w-12 h-12 bg-white rounded-2xl shadow-xl flex items-center justify-center border border-stone-100 active:scale-95 transition-all cursor-pointer">
-            <Navigation size={22} className="text-brand-amber" />
-          </div>
-        </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* Bottom Card - Find Buddy - Content changes based on selected restaurant */}
         <div className="pointer-events-auto absolute inset-x-0 bottom-24 flex justify-center px-4">
@@ -531,14 +1164,20 @@ function MapScreen({ onNavigate, selectedRestaurant, setSelectedRestaurant }: { 
                 </div>
 
                 <div className="self-stretch inline-flex justify-between items-center bg-stone-50/50 p-2 rounded-[28px] -mx-1">
-                  <div className="flex -space-x-3">
-                    {selectedRestaurant.buddies.map((buddy, idx) => (
-                      <div key={idx} className="w-10 h-10 bg-white rounded-full shadow-sm outline outline-2 outline-white overflow-hidden">
-                        <img className="w-full h-full object-cover" src={buddy} />
-                      </div>
-                    ))}
+                  <div className="flex -space-x-1.5">
+                    {selectedRestaurant.buddies.map((buddy, idx) => {
+                      const isPlaceholder = buddy.includes('.png');
+                      const avatarUrl = isPlaceholder 
+                        ? `https://i.pravatar.cc/100?u=${selectedRestaurant.id}-${idx}` 
+                        : buddy;
+                      return (
+                        <div key={idx} className="w-10 h-10 bg-white rounded-full overflow-hidden border-2 border-white shadow-sm ring-1 ring-black/5">
+                          <img className="w-full h-full object-cover" src={avatarUrl} alt="Buddy" />
+                        </div>
+                      );
+                    })}
                     {selectedRestaurant.joined.split('/')[0] === '1' && (
-                      <div className="w-10 h-10 bg-orange-100 rounded-full shadow-sm outline outline-2 outline-white flex items-center justify-center">
+                      <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
                         <div className="text-brand-amber text-[10px] font-bold font-sans tracking-tighter">+{parseInt(selectedRestaurant.joined.split('/')[1]) - 1}</div>
                       </div>
                     )}
@@ -580,288 +1219,665 @@ function MapScreen({ onNavigate, selectedRestaurant, setSelectedRestaurant }: { 
   );
 }
 
-interface MapMarkerProps {
-  key?: string | number;
-  price: string;
-  top: string;
-  left: string;
-  variant?: 'primary' | 'dark';
-  active?: boolean;
-  onClick: () => void;
-}
-
-function MapMarker({ price, top, left, variant = 'primary', active = false, onClick }: MapMarkerProps) {
-  return (
-    <div 
-      style={{ top, left }} 
-      onClick={onClick}
-      className={`absolute z-20 flex flex-col items-center pointer-events-auto cursor-pointer transition-all duration-300 ${active ? 'scale-125 z-40' : 'scale-100 hover:scale-110'}`}
-    >
-      <div className={`px-2.5 py-1.5 rounded-full shadow-lg flex items-center gap-1 transition-all ${
-        active ? 'bg-primary ring-4 ring-primary/20' : (variant === 'dark' ? 'bg-[#4A2C2A]' : 'bg-brand-amber')
-      }`}>
-          <div className="w-2.5 h-2.5 bg-white rounded-full flex items-center justify-center overflow-hidden">
-             <UtensilsCrossed size={6} className={active ? 'text-primary' : (variant === 'dark' ? 'text-[#4A2C2A]' : 'text-brand-amber')} />
-          </div>
-          <span className="text-white text-[10px] font-bold font-sans whitespace-nowrap">{price} THB</span>
-      </div>
-      <div className={`w-[2px] h-2.5 ${active ? 'bg-primary' : (variant === 'dark' ? 'bg-[#4A2C2A]' : 'bg-brand-amber')} -mt-px`} />
-    </div>
-  );
-}
-
 function MatchingScreen({ onNavigate, selectedRestaurant }: { onNavigate: (s: Screen) => void; selectedRestaurant: Restaurant | null }) {
-  const [selectedSpot, setSelectedSpot] = useState<number | null>(null);
-  
-  const spots = [
-    { name: 'Max', role: 'ข้าวหน้าไก่ซอสน้ำปลา', img: 'https://images.unsplash.com/photo-1563379091339-03b21bc4a4f8?w=500&q=80', avatar: 'https://i.pravatar.cc/150?u=1', filled: true },
-    { name: 'Valu', role: 'ข้าวหน้าไก่เทอริยากิ', img: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80', avatar: 'https://i.pravatar.cc/150?u=2', filled: true },
-    { name: 'Seven', role: 'ข้าวหน้าไก่แซ่บ', img: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=500&q=80', avatar: 'https://i.pravatar.cc/150?u=3', filled: true },
-    { name: 'Eleven', role: 'ข้าวหน้าไก่แซ่บ', img: 'https://images.unsplash.com/photo-1563379091339-03b21bc4a4f8?w=500&q=80', avatar: 'https://i.pravatar.cc/150?u=4', filled: true },
-    { name: 'User', role: 'Available', img: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80', avatar: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png', filled: false },
+  const { userName, profileImage } = useUser();
+
+  // Dynamic Data Mapping based on cuisine/restaurant type
+  const restaurantCuisineData: Record<string, { menus: string[], images: string[] }> = {
+    'Japanese': {
+      menus: ['Salmon Sashimi', 'Tonkotsu Ramen', 'Tempura Set', 'Unagi Don', 'Spicy Tuna Roll'],
+      images: [
+        'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400&q=80',
+        'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&q=80',
+        'https://images.unsplash.com/photo-1553621042-f6e147245754?w=400&q=80',
+        'https://images.unsplash.com/photo-1583953623787-ada99d338235?w=400&q=80',
+      ]
+    },
+    'Street Food': {
+      menus: ['Somtum Thai', 'Khao Man Gai', 'Pad Thai', 'Moo Ping', 'Crispy Pork'],
+      images: [
+        'https://images.unsplash.com/photo-1563379091339-03b21bc4a4f8?w=400&q=80',
+        'https://images.unsplash.com/photo-1510629954389-c1e0da47d4ec?w=400&q=80',
+        'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&q=80',
+        'https://images.unsplash.com/photo-1626074353765-517a681e40be?w=400&q=80',
+      ]
+    },
+    'Western': {
+      menus: ['Truffle Pizza', 'Carbonara Pasta', 'Beef Steak', 'BBQ Ribs', 'Caesar Salad'],
+      images: [
+        'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&q=80',
+        'https://images.unsplash.com/photo-1612874742237-6526221588e3?w=400&q=80',
+        'https://images.unsplash.com/photo-1544025162-d76694265947?w=400&q=80',
+        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=80',
+      ]
+    },
+    'Fast Food': {
+      menus: ['Double Cheese Burger', 'Chicken Wings', 'French Fries', 'Spicy Burger'],
+      images: [
+        'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80',
+        'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&q=80',
+        'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=400&q=80',
+      ]
+    },
+    'Buffet': {
+      menus: ['Premium Shabu', 'Wagyu Beef', 'Seafood Platter', 'Dessert Buffet'],
+      images: [
+        'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=400&q=80',
+        'https://images.unsplash.com/photo-1544025162-d76694265947?w=400&q=80',
+        'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&q=80',
+      ]
+    },
+    'Healthy': {
+      menus: ['Quinoa Salad', 'Poke Bowl', 'Green Smoothie', 'Vegan Wrap'],
+      images: [
+        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=80',
+        'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&q=80',
+        'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=400&q=80',
+      ]
+    },
+    'Drinks': {
+      menus: ['Boba Milk Tea', 'Matcha Latte', 'Iced Americano', 'Fruit Smoothie'],
+      images: [
+        'https://images.unsplash.com/photo-1544717297-fa95b9ee91c3?w=400&q=80',
+        'https://images.unsplash.com/photo-1515516089376-88db1e26e9c0?w=400&q=80',
+        'https://images.unsplash.com/photo-1461023233867-0ce690327429?w=400&q=80',
+      ]
+    },
+    'Dessert': {
+      menus: ['Honey Toast', 'Fluffy Pancake', 'Chocolate Crepe', 'Icy Bing-su'],
+      images: [
+        'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=400&q=80',
+        'https://images.unsplash.com/photo-1567620905732-2d1ec7bb7445?w=400&q=80',
+        'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=400&q=80',
+      ]
+    }
+  };
+
+  const NAMES = ['Sarah', 'Mike', 'Aum', 'Koy', 'James', 'Alice', 'Ploy', 'Nut'];
+  const AVATARS = [
+    'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&q=80',
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80',
+    'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&q=80',
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&q=80',
+    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&q=80',
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=80',
+    'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=200&q=80'
   ];
+
+  // Logic to determine which data to show
+  const generatedBuddies = useMemo(() => {
+    // If no restaurant selected, pick a random trending type
+    const cuisines = Object.keys(restaurantCuisineData);
+    const type = selectedRestaurant?.type || cuisines[Math.floor(Math.random() * cuisines.length)];
+    const data = restaurantCuisineData[type] || restaurantCuisineData['Western'];
+    
+    // Extract capacity from "joined" (e.g., "2/4")
+    const joinedParts = (selectedRestaurant?.joined || '2/4').split('/');
+    const bookedCount = parseInt(joinedParts[0]) || 0;
+    const totalCapacity = parseInt(joinedParts[1]) || 8; // Default to 8 if not specified
+
+    return Array.from({ length: totalCapacity }, (_, i) => ({
+      id: i + 1,
+      restaurant: selectedRestaurant?.name || `Top Choice ${i + 1}`,
+      user: NAMES[i % NAMES.length],
+      menu: data.menus[i % data.menus.length],
+      // Use category-based image if available, otherwise generic food image from unsplash
+      foodImg: data.images[i % data.images.length] || `https://source.unsplash.com/featured/?${type.toLowerCase()},food&sig=${i}`,
+      userImg: AVATARS[i % AVATARS.length],
+      isBooked: i < bookedCount
+    }));
+  }, [selectedRestaurant]);
+
+  const [buddies, setBuddies] = useState(generatedBuddies);
+
+  // Sync state if selectedRestaurant changes
+  useEffect(() => {
+    setBuddies(generatedBuddies);
+    setSelectedId(null);
+  }, [generatedBuddies]);
+
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  const availableCount = buddies.filter(b => !b.isBooked).length;
+
+  const toggleBooking = (id: number) => {
+    const buddy = buddies.find(b => b.id === id);
+    if (!buddy || buddy.isBooked) return;
+    setSelectedId(prev => prev === id ? null : id);
+  };
 
   return (
     <motion.div 
       initial={{ x: '100%', opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: '-100%', opacity: 0 }}
-      className="flex-1 flex flex-col bg-white min-h-screen"
+      className="flex-1 flex flex-col bg-[#FDFBF7] min-h-screen"
     >
-      <Header />
+      <Header onProfileClick={() => onNavigate('profile')} />
       
-      <div className="px-6 pt-10 pb-40 overflow-y-auto">
+      <div className="px-6 pt-6 pb-40 flex-1 overflow-y-auto no-scrollbar">
+        <button 
+          onClick={() => onNavigate('food-map')}
+          className="mb-6 w-11 h-11 rounded-2xl bg-white shadow-sm flex items-center justify-center text-zinc-800 active:scale-95 transition-all"
+        >
+          <ArrowLeft size={24} />
+        </button>
+
         <div className="flex flex-col gap-1 mb-6">
-          <h2 className="text-zinc-800 text-2xl font-bold font-display leading-tight">Find Buddy</h2>
-          <p className="text-stone-600 text-base font-normal font-sans leading-tight">
-            {selectedRestaurant ? `${selectedRestaurant.promotion} at ${selectedRestaurant.name}` : 'Searching nearby...'}
+          <h2 className="text-zinc-800 text-3xl font-black font-display italic tracking-tight uppercase leading-tight">
+            Find Buddy {selectedRestaurant ? `at ${selectedRestaurant.name}` : ''}
+          </h2>
+          <p className="text-stone-500 text-sm font-medium">
+            {selectedRestaurant ? `Join friends for ${selectedRestaurant.type} nearby` : 'Check out popular spots nearby'}
           </p>
         </div>
 
-        <div className="w-full flex items-center gap-2 mb-8">
-          <div className="flex-1 h-1.5 relative bg-lime-100 rounded-full overflow-hidden">
+        {/* Progress Bar Container */}
+        <div className="mb-8 p-5 bg-white rounded-[32px] shadow-sm border border-black/5">
+          <div className="flex justify-between items-center mb-3">
+            <span className={`font-black text-xs uppercase tracking-[0.15em] ${availableCount < 2 ? 'text-red-500 animate-pulse' : 'text-[#A3432D]'}`}>
+              {availableCount} {availableCount === 1 ? 'SPOT' : 'SPOTS'} LEFT
+            </span>
+            <Users size={16} className={availableCount < 2 ? 'text-red-500' : 'text-brand-amber'} />
+          </div>
+          <div className="w-full h-3 bg-stone-100 rounded-full overflow-hidden">
             <motion.div 
-              initial={{ width: '0%' }}
-              animate={{ width: '50%' }}
-              className="h-full bg-brand-amber rounded-full" 
+              initial={{ width: 0 }}
+              animate={{ width: `${(availableCount / buddies.length) * 100}%` }}
+              className={`h-full rounded-full shadow-[0_0_8px_rgba(255,191,0,0.5)] ${availableCount < 2 ? 'bg-red-500 shadow-red-500/50' : 'bg-brand-amber'}`}
             />
           </div>
-          <span className="text-brand-amber text-[10px] font-bold font-sans uppercase leading-4 whitespace-nowrap">1 spots left</span>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-7 gap-y-10">
-          {spots.map((spot, i) => (
-            <motion.div 
-              key={i}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.05 }}
-              onClick={() => {
-                if (!spot.filled) setSelectedSpot(i);
-              }}
-              className="flex flex-col items-center gap-3.5"
-            >
-              <div className="relative w-full aspect-square rounded-[10px] overflow-hidden shadow-sm bg-stone-100 group">
-                <img 
-                  src={spot.img} 
-                  className={`w-full h-full object-cover transition-all duration-500 ${ (spot.filled || (selectedSpot === i)) ? 'brightness-[0.45]' : 'brightness-90' }`} 
-                />
-                
-                {(spot.filled || selectedSpot === i) ? (
-                  <motion.div 
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="absolute inset-0 flex items-center justify-center"
-                  >
-                    <div className="w-11 h-11 bg-white/70 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg">
-                      <Check size={24} strokeWidth={4} className="text-zinc-800/80" />
-                    </div>
-                  </motion.div>
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-11 h-11 bg-white/70 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg text-stone-600">
-                       <Plus size={24} strokeWidth={2.5} />
-                    </div>
+        {/* 2-Column Grid */}
+        <div className="grid grid-cols-2 gap-x-5 gap-y-8 pb-10">
+          {buddies.map((buddy) => {
+            const isSelected = selectedId === buddy.id;
+            const displayUser = isSelected ? userName : (buddy.isBooked ? buddy.user : "");
+            const displayImg = isSelected ? profileImage : (buddy.isBooked ? buddy.userImg : "");
+            const hasUser = displayUser !== "";
+
+            return (
+              <motion.div
+                key={buddy.id}
+                whileTap={!buddy.isBooked ? { scale: 0.95 } : {}}
+                onClick={() => toggleBooking(buddy.id)}
+                className="relative group cursor-pointer transition-all duration-300"
+              >
+                {/* Food Image Card */}
+                <div className={`relative aspect-[4/5] rounded-[32px] overflow-hidden shadow-md border-2 transition-all duration-300 ${
+                  isSelected ? 'border-brand-amber ring-4 ring-brand-amber/10 scale-[1.02]' : 'border-white'
+                }`}>
+                  <img 
+                    src={buddy.foodImg} 
+                    alt={buddy.menu} 
+                    className={`w-full h-full object-cover transition-all duration-500 ${buddy.isBooked && !isSelected ? 'opacity-40 grayscale-[0.4]' : 'opacity-100'}`}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1543353071-087092ec393a?w=400&q=80';
+                    }}
+                  />
+                  
+                  {/* Status Overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center p-4">
+                    {buddy.isBooked && !isSelected ? (
+                      <div className="w-12 h-12 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white border border-white/20">
+                        <Check size={28} strokeWidth={4} />
+                      </div>
+                    ) : isSelected ? (
+                      <div className="w-12 h-12 rounded-full bg-brand-amber flex items-center justify-center text-white shadow-xl shadow-brand-amber/30 animate-in zoom-in-50 duration-300">
+                        <Check size={28} strokeWidth={4} />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-brand-amber shadow-lg border border-white opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Plus size={28} strokeWidth={4} />
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-
-              <div className="flex items-center gap-1.5 w-full">
-                <div className="w-12 h-12 rounded-full overflow-hidden bg-stone-200 border-2 border-white shadow-sm shrink-0">
-                  <img src={spot.avatar} className="w-full h-full object-cover" alt={spot.name} />
                 </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-zinc-800 text-lg font-bold font-display leading-tight truncate">
-                    {spot.name}
-                  </span>
-                  <span className="text-stone-600 text-xs font-normal font-sans leading-tight truncate">
-                    {spot.role}
-                  </span>
+
+                {/* Footer Info */}
+                <div className="mt-4 px-1">
+                  <div className="flex items-center gap-2 mb-1.5 min-w-0">
+                    {hasUser ? (
+                      <>
+                        <img src={displayImg} alt={displayUser} className="w-10 h-10 rounded-2xl object-cover ring-2 ring-white shadow-sm shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-zinc-800 font-black italic text-sm leading-none truncate tracking-tight">{displayUser}</p>
+                          <p className="text-[#A3432D] font-bold text-[10px] uppercase mt-1 tracking-wider truncate">{buddy.restaurant}</p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-2xl bg-stone-100 border border-dashed border-stone-300 flex items-center justify-center shrink-0">
+                          <User size={16} className="text-stone-300" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-stone-300 font-black italic text-sm leading-none truncate tracking-tight">Available</p>
+                          <p className="text-stone-300 font-bold text-[10px] uppercase mt-1 tracking-wider truncate">{buddy.restaurant}</p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <p className="text-stone-400 font-medium text-[11px] truncate pl-0.5">{buddy.menu}</p>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
       </div>
 
-      <div className="fixed bottom-10 left-0 right-0 px-10 z-50">
-        <motion.button
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          onClick={() => onNavigate('confirmation')}
-          disabled={selectedSpot === null}
-          className={`w-full py-5 rounded-full text-white text-xl font-bold font-display uppercase tracking-widest shadow-[0px_25px_50px_-12px_rgba(164,74,0,0.30)] transition-all ${selectedSpot === null ? 'bg-stone-300' : 'bg-brand-amber active:scale-95 hover:brightness-110'}`}
+      {/* Confirm Button Overlay */}
+      <div className="fixed bottom-0 inset-x-0 p-8 bg-gradient-to-t from-[#FDFBF7] via-[#FDFBF7]/90 to-transparent pointer-events-none">
+        <button
+          onClick={() => selectedId && onNavigate('confirmation')}
+          disabled={!selectedId}
+          className={`w-full py-5 rounded-[28px] font-black uppercase tracking-[0.2em] text-lg transition-all duration-300 shadow-2xl flex items-center justify-center gap-3 pointer-events-auto ${
+            selectedId 
+              ? 'bg-[#A3432D] text-white active:scale-95 shadow-[#A3432D]/30' 
+              : 'bg-stone-200 text-stone-400 cursor-not-allowed shadow-none'
+          }`}
         >
-          CONFIRM
-        </motion.button>
-      </div>
-    </motion.div>
-  );
-}
-
-function ConfirmationScreen({ preferences, onNavigate }: { preferences: UserPreferences; onNavigate: (s: Screen) => void }) {
-  return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="flex-1 flex flex-col"
-    >
-      <Header />
-      <div className="h-2/5 relative overflow-hidden bg-white">
-        <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=1200&q=80" className="w-full h-full object-cover" />
-      </div>
-
-      <div className="flex-1 -mt-10 bg-surface rounded-t-[40px] px-8 pt-10 text-center flex flex-col items-center">
-        <div className="bg-primary p-4 rounded-full text-white mb-6 shadow-xl shadow-primary/20">
-          <CheckCircle size={48} fill="currentColor" className="text-white" />
-        </div>
-        
-        <h1 className="text-4xl font-black mb-4 italic leading-tight">Meal Confirmed!</h1>
-        <p className="text-accent/60 text-lg leading-relaxed max-w-[280px] mb-10">
-          Your culinary choice has been recorded. Saving looks good on you.
-        </p>
-
-        {/* Stepper */}
-        <div className="flex items-center justify-between w-full max-w-[240px] mb-12 relative">
-          <div className="absolute top-1/2 left-0 w-full h-[2px] bg-black/5 -translate-y-1/2 -z-10" />
-          <div className="w-6 h-6 rounded-full bg-black/10" />
-          <div className="flex flex-col items-center relative">
-            <div className="w-6 h-6 rounded-full bg-primary" />
-            <span className="absolute top-8 text-[10px] font-black text-primary uppercase tracking-widest whitespace-nowrap">preparing order</span>
-          </div>
-          <div className="w-6 h-6 rounded-full bg-black/10" />
-          <div className="w-6 h-6 rounded-full bg-black/10" />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 w-full mb-10">
-          <div className="bg-white p-6 rounded-[32px] text-left border border-black/5">
-            <div className="text-primary mb-6"><Navigation size={20} /></div>
-            <p className="text-[10px] font-black text-accent/40 uppercase tracking-widest mb-1">Today Left</p>
-            <div className="flex items-baseline space-x-1">
-              <span className="text-3xl font-black">฿{preferences.budget}</span>
-            </div>
-            <div className="mt-4 h-1 w-full bg-black/5 rounded-full overflow-hidden">
-              <div className="h-full bg-primary w-2/3" />
-            </div>
-          </div>
-          
-          <div className="bg-primary p-6 rounded-[32px] text-left text-white shadow-xl shadow-primary/20">
-            <div className="mb-6"><UtensilsCrossed size={20} /></div>
-            <p className="text-[10px] font-black opacity-60 uppercase tracking-widest mb-1">Total Savings</p>
-            <div className="flex items-baseline space-x-1">
-              <span className="text-3xl font-black">฿1,250</span>
-            </div>
-            <p className="text-[8px] font-bold mt-2 opacity-80">+ 45 from last meal</p>
-          </div>
-        </div>
-
-        <button onClick={() => onNavigate('home')} className="btn-primary w-full py-6 text-2xl uppercase tracking-widest mb-12">Home</button>
-      </div>
-    </motion.div>
-  );
-}
-
-function WhatToEatIntro({ onNavigate }: { onNavigate: (s: Screen) => void }) {
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="flex-1 bg-primary flex flex-col items-center justify-center text-center p-8 z-10"
-    >
-      <Header />
-      <div className="flex-1 flex flex-col items-center justify-center">
-        <h1 className="text-white text-5xl font-black italic mb-20 leading-tight">What to Eat Today?</h1>
-        
-        <button 
-          onClick={() => onNavigate('what-to-eat-result')}
-          className="relative w-64 h-64 group"
-        >
-          <div className="absolute inset-0 bg-white/20 rounded-full scale-110 animate-pulse" />
-          <div className="absolute inset-0 border-8 border-white/40 rounded-full" />
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-transparent">
-             <div className="text-white mb-4"><Dices size={80} strokeWidth={1.5} /></div>
-             <span className="text-white text-2xl font-black uppercase tracking-widest max-w-[120px] leading-tight">Random Meal</span>
-          </div>
+          {selectedId ? 'Confirm Selection' : 'Pick a Buddy'}
         </button>
       </div>
     </motion.div>
   );
 }
 
-function WhatToEatResult({ onNavigate }: { onNavigate: (s: Screen) => void }) {
+function ConfirmationScreen({ preferences, onNavigate }: { preferences: UserPreferences; onNavigate: (s: Screen) => void }) {
+  const [step, setStep] = useState(1);
+  
+  useEffect(() => {
+    const timer1 = setTimeout(() => setStep(2), 3000);
+    const timer2 = setTimeout(() => setStep(3), 7000);
+    const timer3 = setTimeout(() => setStep(4), 12000);
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+    };
+  }, []);
+
+  const STAGES = [
+    { title: 'Sent', icon: Send },
+    { title: 'Confirm', icon: ClipboardCheck },
+    { title: 'Cooking', icon: Flame },
+    { title: 'Served', icon: Sparkles }
+  ];
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex-1 bg-primary flex flex-col relative"
+      className="flex-1 flex flex-col bg-[#FDFBF7]"
     >
-      <Header />
-      <div className="flex-1 flex items-center justify-center p-8 mt-12 mb-32">
-        <motion.div 
-          initial={{ y: 50, scale: 0.9 }}
-          animate={{ y: 0, scale: 1 }}
-          className="bg-white rounded-[56px] w-full p-8 shadow-2xl flex flex-col"
+      {/* Premium Full-Width Image Header */}
+      <div className="h-[11%] w-full relative overflow-hidden group">
+        <motion.img 
+          initial={{ scale: 1.1 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 10, ease: "linear" }}
+          src="https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=1200&q=80" 
+          className="w-full h-full object-cover" 
+          alt="Confirmed Meal"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#FDFBF7] via-transparent to-transparent opacity-80" />
+        <button 
+           onClick={() => onNavigate('home')}
+           className="absolute top-14 left-6 w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30 active:scale-90 transition-transform"
         >
-          <div className="relative rounded-[40px] overflow-hidden mb-8 aspect-[4/3] group shadow-inner">
-            <img 
-               src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80" 
-               alt="Restaurant" 
-               className="w-full h-full object-cover transition-transform group-hover:scale-110" 
+          <ChevronLeft />
+        </button>
+      </div>
+
+      {/* Main Content: centered and refined typography */}
+      <div className="flex-1 flex flex-col items-center justify-start text-center px-10 pt-8">
+        <motion.div
+           key={step}
+           initial={{ y: 20, opacity: 0 }}
+           animate={{ y: 0, opacity: 1 }}
+           className="flex flex-col items-center"
+        >
+          <h1 className="text-zinc-900 text-5xl font-black italic tracking-tight mb-4 leading-none">
+            {step === 4 ? 'Bon Appétit!' : 'Order Confirmed'}
+          </h1>
+          <p className="text-stone-500 text-xl font-medium tracking-tight">
+            {step === 1 && "Relaying request to kitchen..."}
+            {step === 2 && "Restaurant received your order."}
+            {step === 3 && "Chef is working their magic."}
+            {step === 4 && "Your table is ready"}
+          </p>
+          
+          {step === 4 && (
+             <motion.button
+               initial={{ opacity: 0, scale: 0.9 }}
+               animate={{ opacity: 1, scale: 1 }}
+               onClick={() => onNavigate('home')}
+               className="mt-10 px-8 py-4 bg-brand-amber text-white rounded-full font-black shadow-lg shadow-brand-amber/20 active:scale-95 transition-all"
+             >
+               Explore More
+             </motion.button>
+          )}
+        </motion.div>
+      </div>
+
+      {/* Borderless Progress Timeline at the very bottom */}
+      <div className="w-full pb-16 pt-8 border-t border-stone-100/50">
+        <div className="max-w-sm mx-auto px-8 relative">
+          {/* Progress Track */}
+          <div className="absolute top-5 left-10 right-10 h-0.5 bg-stone-100" />
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: `calc(${((step - 1) / (STAGES.length - 1)) * 100}% - 24px)` }}
+            className="absolute top-5 left-10 h-0.5 bg-brand-amber origin-left"
+          />
+          
+          <div className="flex justify-between items-start relative z-10">
+            {STAGES.map((s, i) => {
+              const active = step >= i + 1;
+              const isCurrent = step === i + 1;
+              const Icon = s.icon;
+              return (
+                <div key={i} className="flex flex-col items-center gap-3">
+                  <motion.div 
+                    animate={isCurrent ? { 
+                      scale: [1, 1.2, 1],
+                      boxShadow: ["0 0 0 0 rgba(249,135,62,0)", "0 0 0 8px rgba(249,135,62,0.1)", "0 0 0 0 rgba(249,135,62,0)"]
+                    } : {}}
+                    transition={{ repeat: isCurrent ? Infinity : 0, duration: 2 }}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
+                      active ? 'bg-brand-amber text-white' : 'bg-stone-50 text-stone-300'
+                    }`}
+                  >
+                    <Icon size={18} strokeWidth={active ? 3 : 2} />
+                  </motion.div>
+                  <span className={`text-[10px] font-black uppercase tracking-widest ${
+                    active ? 'text-zinc-800' : 'text-stone-300'
+                  }`}>
+                    {s.title}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function WhatToEatIntro({ onNavigate, setSelectedRestaurant }: { onNavigate: (s: Screen) => void; setSelectedRestaurant: (r: Restaurant | null) => void }) {
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [priceFilter, setPriceFilter] = useState<string>('All');
+  const [showFilters, setShowFilters] = useState(false);
+  const [isRandomizing, setIsRandomizing] = useState(false);
+  const categories = ['Street Food', 'Fast Food', 'Buffet', 'Japanese', 'Western', 'Healthy', 'Dessert', 'Drinks'];
+
+  const handleRandomize = () => {
+    setIsRandomizing(true);
+    
+    // Logic remains the same, but deferred
+    setTimeout(() => {
+      let pool = RESTAURANTS;
+      if (selectedTypes.length > 0) {
+        pool = pool.filter(r => selectedTypes.includes(r.type));
+      }
+      if (priceFilter !== 'All') {
+        pool = pool.filter(r => {
+          const price = parseInt(r.price);
+          if (priceFilter === 'Under 100 THB') return price < 100;
+          if (priceFilter === '100 - 300 THB') return price >= 100 && price <= 300;
+          if (priceFilter === 'Over 300 THB') return price > 300;
+          return true;
+        });
+      }
+      if (pool.length === 0) pool = RESTAURANTS;
+      const random = pool[Math.floor(Math.random() * pool.length)];
+      setSelectedRestaurant(random);
+      setIsRandomizing(false);
+      onNavigate('what-to-eat-result');
+    }, 2000);
+  };
+
+  const toggleType = (type: string) => {
+    setSelectedTypes(prev => 
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="flex-1 bg-white flex flex-col relative overflow-hidden"
+    >
+      <Header onProfileClick={() => onNavigate('profile')} />
+      <div className="flex-1 flex flex-col items-center justify-center text-center p-8 scale-[0.9] transform origin-center">
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="relative mb-12"
+        >
+           <div className="absolute inset-0 bg-primary/10 rounded-full blur-3xl" />
+           <h1 className="text-primary text-5xl font-black italic leading-tight relative">What to Eat<br/>Today?</h1>
+        </motion.div>
+        
+        <motion.button 
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.4, type: "spring" }}
+          onClick={handleRandomize}
+          disabled={isRandomizing}
+          className="relative w-64 h-64 group"
+        >
+          <div className="absolute inset-0 bg-primary/20 rounded-full scale-110 animate-pulse" />
+          <div className="absolute inset-0 border-8 border-primary/20 rounded-full" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-primary rounded-full shadow-2xl shadow-primary/40 transform group-hover:scale-105 group-active:scale-95 transition-transform duration-300">
+             <div className="text-white mb-4"><Dices size={80} strokeWidth={1.5} /></div>
+             <span className="text-white text-2xl font-black uppercase tracking-widest max-w-[120px] leading-tight text-center">Random Meal</span>
+          </div>
+        </motion.button>
+      </div>
+
+      {/* Loading Overlay */}
+      <AnimatePresence>
+        {isRandomizing && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-primary z-[200] flex flex-col items-center justify-center text-center"
+          >
+            <motion.div 
+              animate={{ 
+                rotate: 360,
+                scale: [1, 1.2, 1]
+              }}
+              transition={{ 
+                rotate: { repeat: Infinity, duration: 1, ease: "linear" },
+                scale: { repeat: Infinity, duration: 1 }
+              }}
+              className="text-white mb-12"
+            >
+              <Utensils size={100} strokeWidth={1.5} />
+            </motion.div>
+            <div className="space-y-2">
+              <h2 className="text-white text-4xl font-black italic tracking-tight">Shuffling Flavors...</h2>
+              <p className="text-white/60 font-bold uppercase tracking-[0.3em] text-sm animate-pulse">Finding your perfect match</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Filter Button */}
+      {!isRandomizing && (
+        <button 
+          onClick={() => setShowFilters(true)}
+          className="fixed bottom-32 right-6 w-14 h-14 bg-white rounded-full shadow-xl flex items-center justify-center text-primary border border-primary/10 z-40 transform active:scale-90 transition-transform"
+        >
+          <SlidersHorizontal size={24} />
+          {(selectedTypes.length > 0 || priceFilter !== 'All') && (
+            <div className="absolute -top-1 -right-1 w-5 h-5 bg-brand-amber text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">
+              {selectedTypes.length + (priceFilter !== 'All' ? 1 : 0)}
+            </div>
+          )}
+        </button>
+      )}
+
+      {/* Filter Options Modal */}
+      <AnimatePresence>
+        {showFilters && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowFilters(false)}
+              className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[100]"
             />
-            <div className="absolute top-6 right-6 p-4 rounded-full bg-white text-primary/40 shadow-lg">
-              <ChevronRight />
-            </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-8">
-               <h3 className="text-white text-5xl font-black italic leading-none">จูนปัง</h3>
-            </div>
-          </div>
+            <motion.div 
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-[40px] z-[110] p-8 pb-12 shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-8">
+                <h3 className="text-2xl font-black italic tracking-tight text-primary">Filters</h3>
+                <button 
+                  onClick={() => {
+                    setSelectedTypes([]);
+                    setPriceFilter('All');
+                  }}
+                  className="text-xs font-black text-brand-amber uppercase tracking-widest"
+                >
+                  Reset
+                </button>
+              </div>
 
-          <div className="flex justify-between items-start mb-10 px-2">
-            <div>
-               <h3 className="text-4xl font-black italic mb-2 tracking-tight">จูนปัง</h3>
-               <div className="flex items-center space-x-3">
-                 <div className="flex items-center text-primary">
-                    <CheckCircle size={20} fill="currentColor" className="text-primary mr-1" />
-                    <span className="font-black text-xl">4.9</span>
-                 </div>
-                 <div className="w-1 h-1 bg-black/10 rounded-full" />
-                 <span className="text-accent/40 font-bold text-lg">1.2km away</span>
-               </div>
-            </div>
-            <button className="p-4 rounded-full bg-white shadow-xl text-primary transform hover:scale-110 active:scale-95 transition-transform"><Heart size={32} /></button>
-          </div>
+              <div className="space-y-8">
+                <div>
+                  <p className="text-[10px] font-black text-accent/40 uppercase tracking-[0.2em] mb-4">Price Range</p>
+                  <div className="flex flex-wrap gap-2">
+                    {['All', 'Under 100 THB', '100 - 300 THB', 'Over 300 THB'].map(p => (
+                      <button
+                        key={p}
+                        onClick={() => setPriceFilter(p)}
+                        className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all ${
+                          priceFilter === p 
+                          ? 'bg-primary text-white shadow-lg' 
+                          : 'bg-stone-50 text-stone-600 border border-stone-200'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-          <div className="space-y-4">
-            <button onClick={() => onNavigate('confirmation')} className="w-full bg-[#A34D00] text-white py-6 rounded-[32px] text-2xl font-black flex items-center justify-center transform active:scale-95 transition-transform shadow-xl">
-               <CheckCircle size={32} className="mr-4" />
-               Claim & Track
-            </button>
-            <button onClick={() => onNavigate('what-to-eat-intro')} className="w-full bg-[#E8EBC3] text-accent/60 py-6 rounded-[32px] text-2xl font-black flex items-center justify-center transform active:scale-95 transition-transform shadow-sm">
-               <RotateCcw size={32} className="mr-4" />
-               Reroll
-            </button>
-          </div>
+                <div>
+                  <p className="text-[10px] font-black text-accent/40 uppercase tracking-[0.2em] mb-4">Categories</p>
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map(cat => {
+                      const active = selectedTypes.includes(cat);
+                      return (
+                        <button
+                          key={cat}
+                          onClick={() => {
+                            if (active) setSelectedTypes(prev => prev.filter(t => t !== cat));
+                            else setSelectedTypes(prev => [...prev, cat]);
+                          }}
+                          className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all ${
+                            active 
+                            ? 'bg-primary text-white shadow-lg' 
+                            : 'bg-stone-50 text-stone-600 border border-stone-200'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => setShowFilters(false)}
+                  className="btn-primary w-full py-5 text-xl"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+function WhatToEatResult({ onNavigate, restaurant }: { onNavigate: (s: Screen) => void; restaurant: Restaurant | null }) {
+  if (!restaurant) return null;
+
+  const handleClaim = () => {
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.name)}`;
+    window.open(mapsUrl, '_blank');
+    onNavigate('confirmation');
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="flex-1 bg-surface flex flex-col"
+    >
+      <Header onProfileClick={() => onNavigate('profile')} />
+      <div className="flex-1 flex items-center justify-center p-8 mt-2 mb-20 scale-90 sm:scale-100 transform origin-center">
+        <motion.div 
+          initial={{ y: 50, scale: 0.9, opacity: 0 }}
+          animate={{ y: 0, scale: 1, opacity: 1 }}
+          className="w-80 h-[525px] relative bg-white rounded-[48px] shadow-[0px_24px_48px_0px_rgba(28,28,25,0.06)] outline outline-1 outline-offset-[-1px] outline-stone-400/10 overflow-hidden"
+        >
+            <div className="w-72 h-56 left-[16px] top-[16px] absolute rounded-[32px] overflow-hidden">
+                <img 
+                  className="w-full h-full object-cover" 
+                  src={`https://images.unsplash.com/photo-${['1504674900247-0877df9cc836', '1540189549336-e6e99c3679fe', '1565299624946-b28f40a0ae38', '1493770348161-369560ae357d'][parseInt(restaurant.id) % 4]}?w=600&q=80`} 
+                  alt={restaurant.name}
+                />
+            </div>
+
+            <div className="w-72 left-[16px] top-[260px] absolute flex justify-between items-start">
+                <div className="flex flex-col gap-1">
+                    <div className="text-zinc-800 text-2xl font-bold font-display leading-8">{restaurant.name}</div>
+                    <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1 text-zinc-800">
+                             <Star className="w-3.5 h-3.5 fill-brand-amber text-brand-amber" />
+                             <span className="text-sm font-semibold font-sans leading-5">4.9</span>
+                        </div>
+                        <span className="text-stone-600 text-xs font-medium font-sans leading-4">• 1.2km away</span>
+                    </div>
+                </div>
+                <button className="p-2 rounded-full flex items-center justify-center text-brand-amber">
+                    <Heart className="w-5 h-5" />
+                </button>
+            </div>
+
+            <div className="w-72 left-[16px] bottom-10 absolute flex flex-col justify-start items-start gap-3">
+                <button 
+                  onClick={handleClaim}
+                  className="self-stretch py-4 relative bg-brand-amber rounded-full inline-flex justify-center items-center gap-2 shadow-lg shadow-brand-amber/20 hover:brightness-110 active:scale-95 transition-all"
+                >
+                    <ClipboardCheck className="w-4 h-4 text-white" />
+                    <div className="text-center text-white text-base font-bold font-sans leading-6">Claim & Track</div>
+                </button>
+                <button 
+                  onClick={() => onNavigate('what-to-eat-intro')}
+                  className="self-stretch py-4 bg-lime-100 rounded-full inline-flex justify-center items-center gap-2 hover:bg-lime-200 active:scale-95 transition-all"
+                >
+                    <RotateCcw className="w-3.5 h-3.5 text-zinc-800" />
+                    <div className="text-center text-zinc-800 text-base font-bold font-sans leading-6">Reroll</div>
+                </button>
+            </div>
         </motion.div>
       </div>
     </motion.div>

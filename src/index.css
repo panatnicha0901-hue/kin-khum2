@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 @theme {
   --font-sans: "Lexend", ui-sans-serif, system-ui, sans-serif;
@@ -29,6 +30,27 @@
     @apply bg-primary text-white py-4 px-8 rounded-full font-bold shadow-lg shadow-primary/20 flex items-center justify-center transition-all hover:scale-105 active:scale-95;
   }
   .card {
-    @apply bg-white rounded-[32px] p-6 shadow-sm border border-black/5;
+    @apply bg-white rounded-[32px] p-6 shadow-sm;
+  }
+  
+  /* Leaflet Custom Styles */
+  .leaflet-container {
+    background: #F9FAFB !important;
+  }
+  .custom-popup .leaflet-popup-content-wrapper {
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+  }
+  .custom-popup .leaflet-popup-content {
+    margin: 0;
+    width: auto !important;
+  }
+  .custom-popup .leaflet-popup-tip-container {
+    display: none;
+  }
+  .leaflet-div-icon {
+    background: transparent !important;
+    border: none !important;
   }
 }

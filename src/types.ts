@@ -5,13 +5,16 @@
 
 export type Screen = 
   | 'splash' 
+  | 'login'
+  | 'signup'
   | 'setup' 
   | 'home' 
   | 'food-map' 
   | 'matching' 
   | 'confirmation' 
   | 'what-to-eat-intro' 
-  | 'what-to-eat-result';
+  | 'what-to-eat-result'
+  | 'profile';
 
 export interface UserPreferences {
   monthlyBudget: number;
@@ -25,7 +28,7 @@ export interface Restaurant {
   id: string;
   name: string;
   promotion: string;
-  location: { top: string; left: string };
+  location: { lat: number; lng: number };
   price: string;
   type: string;
   spots: string;
